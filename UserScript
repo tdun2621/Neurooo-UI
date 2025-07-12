@@ -1,0 +1,219 @@
+// ==UserScript==
+// @name        Neurooo UI
+// @namespace   http://tampermonkey.net/
+// @version     1
+// @description Adds custom shortcuts and default language settings for Neurooo.com
+// @author      tdun2621
+// @match       https://neurooo.com/en/*
+// @grant       GM_setClipboard
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    // --- Configuration ---
+    // Adjust these selectors based on the actual Neurooo.com website's HTML structure.
+    // Use your browser's developer tools (F12) to inspect elements.
+
+    // Selector for the output text area (where translated content appears)
+    // Based on your provided HTML, the output content is within a div with id="target-content"
+    const OUTPUT_TEXT_AREA_SELECTOR = 'div#target-content';
+
+    // Selectors for the formal/informal register buttons
+    // IMPORTANT: Your provided HTML for the formal button was identical to the informal button.
+    // You MUST verify the actual class or a unique selector for the formal button on Neurooo.com.
+    // If both have 'tone-informal', this script CANNOT distinguish them.
+    const INFORMAL_REGISTER_BUTTON_SELECTOR = 'button.tone-informal';
+    const FORMAL_REGISTER_BUTTON_SELECTOR = 'button.tone-formal'; // Assuming 'tone-formal' for the formal button
+
+    // Selector for the button that swaps input/output languages
+    // Updated to target the div with class "switch-languages"
+    const SWAP_LANGUAGE_BUTTON_SELECTOR = 'div.switch-languages';
+
+    // Selectors for language selection elements (e.g., buttons or dropdowns)
+    // Based on your provided HTML, language selection uses <li> elements.
+    // IMPORTANT: 'li.language-fr' appears in both input and output.
+    // You MUST verify the parent container classes/IDs (e.g., '.language-selector-input', '#input-lang-options')
+    // to correctly differentiate input language LIs from output language LIs.
+    // The selectors below use placeholder parent classes. Please replace them with actual ones from the site.
+    const INPUT_LANG_SELECTORS = {
+        'en': '.language-selector-input li.language-en', // Placeholder: Find a unique parent for input language list
+        'fr': '.language-selector-input li.language-fr'  // Placeholder: Find a unique parent for input language list
+    };
+    const OUTPUT_LANG_SELECTORS = {
+        'en': '.language-selector-output li.language-en-GB', // Placeholder: Find a unique parent for output language list
+        'fr': '.language-selector-output li.language-fr'   // Placeholder: Find a unique parent for output language list
+    };
+    // The 'selected' class is used by Neurooo.com to indicate the active language/register.
+
+
+    // --- Helper Functions ---
+
+    /**
+     * Attempts to click an element.
+     * @param {string} selector - CSS selector for the element to click.
+     * @returns {boolean} True if element was found and clicked, false otherwise.
+     */
+    function clickElement(selector) {
+        const element = document.querySelector(selector);
+        if (element) {
+            element.click();
+            console.log(`Neurooo Userscript: Clicked element: ${selector}`);
+            return true;
+        } else {
+            console.warn(`Neurooo Userscript: Element not found for clicking: ${selector}`);
+            return false;
+        }
+    }
+
+    /**
+     * Sets the default input and output languages, and default register.
+     * This function now assumes language selection and register selection are done by clicking elements.
+     */
+    function setDefaultSettings() {
+        // Set input language to English
+        const inputEnElement = document.querySelector(INPUT_LANG_SELECTORS.en);
+        // Check if the element exists and if it's not already the selected language
+        if (inputEnElement && !inputEnElement.classList.contains('selected')) {
+            inputEnElement.click();
+            console.log('Neurooo Userscript: Set input language to English.');
+        } else if (inputEnElement) {
+            console.log('Neurooo Userscript: Input language already English.');
+        } else {
+            console.warn('Neurooo Userscript: English input language element not found. Please verify input language selectors.');
+        }
+
+        // Set output language to French
+        const outputFrElement = document.querySelector(OUTPUT_LANG_SELECTORS.fr);
+        // Check if the element exists and if it's not already the selected language
+        if (outputFrElement && !outputFrElement.classList.contains('selected')) {
+            outputFrElement.click();
+            console.log('Neurooo Userscript: Set output language to French.');
+        } else if (outputFrElement) {
+            console.log('Neurooo Userscript: Output language already French.');
+        } else {
+            console.warn('Neurooo Userscript: French output language element not found. Please verify output language selectors.');
+        }
+
+        // Set default register to Informal
+        const informalButton = document.querySelector(INFORMAL_REGISTER_BUTTON_SELECTOR);
+        // Assuming the active register button will have a 'selected' class.
+        if (informalButton) {
+            const formalButton = document.querySelector(FORMAL_REGISTER_BUTTON_SELECTOR);
+            if (formalButton && formalButton.classList.contains('selected')) {
+                // If formal is currently selected, click informal to make it default
+                informalButton.click();
+                console.log('Neurooo Userscript: Switched to default Informal register.');
+            } else if (!informalButton.classList.contains('selected')) {
+                // If neither is selected, or informal is not selected, click informal
+                informalButton.click();
+                console.log('Neurooo Userscript: Set default register to Informal.');
+            } else {
+                console.log('Neurooo Userscript: Register already Informal.');
+            }
+        } else {
+            console.warn('Neurooo Userscript: Informal register button not found. Please verify selector.');
+        }
+
+        // --- Alternative for Dropdowns (Uncomment and modify if applicable) ---
+        /*
+        // If they are dropdowns, you might need to set the .value and dispatch a 'change' event.
+        // const INPUT_LANG_DROPDOWN_SELECTOR = '#inputLanguageDropdown';
+        // const OUTPUT_LANG_DROPDOWN_SELECTOR = '#outputLanguageDropdown';
+        const inputDropdown = document.querySelector(INPUT_LANG_DROPDOWN_SELECTOR);
+        if (inputDropdown) {
+            inputDropdown.value = 'en'; // Assuming 'en' is the value for English
+            inputDropdown.dispatchEvent(new Event('change')); // Trigger change event
+            console.log('Neurooo Userscript: Set input language to English via dropdown.');
+        }
+
+        const outputDropdown = document.querySelector(OUTPUT_LANG_DROPDOWN_SELECTOR);
+        if (outputDropdown) {
+            outputDropdown.value = 'fr'; // Assuming 'fr' is the value for French
+            outputDropdown.dispatchEvent(new Event('change')); // Trigger change event
+            console.log('Neurooo Userscript: Set output language to French via dropdown.');
+        }
+        */
+    }
+
+    /**
+     * Copies the content of the translated output area to the clipboard.
+     */
+    function copyTranslatedContents() {
+        const outputElement = document.querySelector(OUTPUT_TEXT_AREA_SELECTOR);
+        if (outputElement && outputElement.innerText) {
+            GM_setClipboard(outputElement.innerText, 'text');
+            console.log('Neurooo Userscript: Translated content copied to clipboard.');
+            // Optionally, provide visual feedback to the user
+            // You might need to create a temporary message element on the page.
+        } else {
+            console.warn('Neurooo Userscript: Could not find output element or it is empty.');
+        }
+    }
+
+    /**
+     * Swaps between formal and informal registers.
+     * Assumes there are distinct buttons for formal and informal.
+     */
+    function toggleRegister() {
+        const informalButton = document.querySelector(INFORMAL_REGISTER_BUTTON_SELECTOR);
+        const formalButton = document.querySelector(FORMAL_REGISTER_BUTTON_SELECTOR);
+
+        if (!informalButton || !formalButton) {
+            console.warn('Neurooo Userscript: Could not find both informal and formal register buttons. Please verify selectors.');
+            return;
+        }
+
+        // Determine which register is currently active and click the other one.
+        // This assumes the active button gets a 'selected' class.
+        if (informalButton.classList.contains('selected')) {
+            formalButton.click();
+            console.log('Neurooo Userscript: Switched to Formal register.');
+        } else if (formalButton.classList.contains('selected')) {
+            informalButton.click();
+            console.log('Neurooo Userscript: Switched to Informal register.');
+        } else {
+            // If neither is selected, default to clicking informal
+            informalButton.click();
+            console.log('Neurooo Userscript: Neither register selected, defaulting to Informal.');
+        }
+    }
+
+    /**
+     * Swaps the input and output language sides by clicking the dedicated swap button.
+     */
+    function swapLanguageSides() {
+        if (clickElement(SWAP_LANGUAGE_BUTTON_SELECTOR)) {
+            console.log('Neurooo Userscript: Swapped language sides using the dedicated button.');
+        }
+    }
+
+    // --- Event Listener for Keyboard Shortcuts ---
+    document.addEventListener('keydown', function(event) {
+        // Check if Alt key is pressed
+        if (event.altKey) {
+            switch (event.key.toLowerCase()) {
+                case 'z': // Alt + Z
+                    event.preventDefault(); // Prevent default browser action (if any)
+                    copyTranslatedContents();
+                    break;
+                case 'a': // Alt + A
+                    event.preventDefault();
+                    toggleRegister();
+                    break;
+                case 's': // Alt + S
+                    event.preventDefault();
+                    swapLanguageSides();
+                    break;
+            }
+        }
+    });
+
+    // --- Initialize on Page Load ---
+    // Use 'load' event to ensure all elements are present, or 'DOMContentLoaded' for earlier execution.
+    window.addEventListener('load', () => {
+        console.log('Neurooo Userscript: Page loaded. Setting default languages and register...');
+        setDefaultSettings(); // Changed function name to reflect broader scope
+    });
+
+})();
