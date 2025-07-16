@@ -4,7 +4,8 @@
 // @version     1
 // @description Adds custom shortcuts and default language settings for Neurooo.com
 // @author      tdun2621
-// @match       https://neurooo.com/en/*
+// @icon         https://images.sftcdn.net/images/t_app-icon-s/p/fcf326e2-9524-11e6-9fb1-00163ec9f5fa/3499352888/bing-translator-windows-10-icon.png
+// @match       https://neurooo.com/*
 // @grant       GM_setClipboard
 // ==/UserScript==
 
